@@ -1,7 +1,10 @@
 import LWE_Sample_Manager
 
-LWE = LWE_Sample_Manager.LWE(10, 10, 10, 2, 3)
+
+LWE = LWE_Sample_Manager.LWE(10, 10, 10, 2, 3, 10)
 print(LWE.n,LWE.m, LWE.q,LWE.h, LWE.sigma)
 LWE.generate()
 print(LWE.s)
 print(LWE.A)
+print(LWE.e)
+print(LWE.b)
