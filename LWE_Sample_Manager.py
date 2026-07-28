@@ -43,7 +43,7 @@ class LWE:
         self.e = e
         return e
 
-    def create_gaussian_table(self): # creates table of values and their probabilities up to a bound
+    def create_gaussian_table(self): # creates table of values and their probabilities up to a bounded multiple of the standard deviation
         self.gaussian_values = np.arange(
             -self.gaussian_bound,
             self.gaussian_bound + 1
