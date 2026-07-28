@@ -9,12 +9,6 @@ print("Matrix A", LWE.A)
 print("Error", LWE.e)
 print("Vector b", LWE.b)
 
-
-dataset = dataset.LWEDataset(
-    LWE.A,
-    LWE.b,
-    81 # base for tokens
-)
-
-A, b = dataset[0]
-print(dataset.__len__())
+integer_base = 81 # base that integer b and integers from vecors in A are converted into before tokenizing
+dataset = dataset.LWEDataset(LWE, integer_base)
+print(dataset._decode_int(dataset._encode_int(9)) == 9)
