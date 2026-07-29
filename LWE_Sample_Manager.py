@@ -67,8 +67,3 @@ class LWE:
         b = (self.A @ self.s + self.e) % self.q
         self.b = b
         return b
-
-    def verify(self):
-        return np.all(
-            (self.A @ self.s + self.e) % self.q == self.b
-        )

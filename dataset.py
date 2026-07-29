@@ -44,5 +44,11 @@ class LWEDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.A[idx]
-
+        src = []
+        for j,val in enumerate(row):
+            src.append(self._encode_int(val))
+            if j<len(row)-1:
+                src.append(self.SEP)
+        tgt = [self.SOS] + self._encode_int(self.b[idx]) + [self.EOS]
+        return (torch.tensor(src, dtype=torch.long), torch.tensor(tgt,dtype=torch.long),)
 
