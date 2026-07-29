@@ -11,7 +11,7 @@ class LWEDataset(Dataset):
 
         self.digits_per_int = self._digit_len(self.q, self.base) # how many base B digits are needed per value
 
-        # unique tokens for
+        # unique tokens for separation (enoder) and start/end of sequence (decoder)
         self.SEP = base
         self.SOS = base + 1
         self.EOS = base + 2
@@ -33,20 +33,20 @@ class LWEDataset(Dataset):
             x //= self.base
         return digits[::-1]
 
-    def _decode_int(self, digits):
+    def _decode_int(self, digits): # converts from base B back to base 10
         x = 0
         for digit in digits:
             x = x * self.base + int(digit)
         return x
 
-    def __len__(self):
+    def __len__(self): # number of training samples
         return len(self.b)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx): # how the model grabs a single sample
         row = self.A[idx]
         src = []
         for j,val in enumerate(row):
-            src.append(self._encode_int(val))
+            src.extend(self._encode_int(val))
             if j<len(row)-1:
                 src.append(self.SEP)
         tgt = [self.SOS] + self._encode_int(self.b[idx]) + [self.EOS]

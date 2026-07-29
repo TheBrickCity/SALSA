@@ -1,14 +1,22 @@
 import LWE_Sample_Manager, dataset, time
+from torch.utils.data import DataLoader
 
 start = time.time()
-LWE = LWE_Sample_Manager.LWE(10, 10, 10, 2, 3, 10)
-print(LWE.n,LWE.m, LWE.q,LWE.h, LWE.sigma)
+LWE = LWE_Sample_Manager.LWE(10, 10, 251, 2, 3, 10)
+# print(LWE.n,LWE.m, LWE.q,LWE.h, LWE.sigma)
 LWE.generate()
-print("Secret", LWE.s)
-print("Matrix A", LWE.A)
-print("Error", LWE.e)
-print("Vector b", LWE.b)
+# print("Secret", LWE.s)
+# print("Matrix A", LWE.A)
+# print("Error", LWE.e)
+# print("Vector b", LWE.b)
 
 integer_base = 81 # base that integer b and integers from vecors in A are converted into before tokenizing
-# dataset = dataset.LWEDataset(LWE, integer_base)
+ds = dataset.LWEDataset(LWE, integer_base)
 # print(dataset._decode_int(dataset._encode_int(9)) == 9)
+
+loader = DataLoader(ds, batch_size=4, shuffle=True)
+src_batch, tgt_batch = next(iter(loader))
+print("src shape:", src_batch.shape)
+print("tgt shape:", tgt_batch.shape)
+print(src_batch[0])
+print(tgt_batch[0])
