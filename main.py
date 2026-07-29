@@ -14,16 +14,17 @@ LWE.generate()
 
 integer_base = 81 # base that integer b and integers from vecors in A are converted into before tokenizing
 ds = dataset.LWEDataset(LWE, integer_base)
-# print(dataset._decode_int(dataset._encode_int(9)) == 9)
 
 loader = DataLoader(ds, batch_size=4, shuffle=True)
 src_batch, tgt_batch = next(iter(loader))
 print("src shape:", src_batch.shape)
-print("tgt shape:", tgt_batch.shape)
 print(src_batch[0])
-print(tgt_batch[0])
 
 embedding = model.TokenEmbedding(ds.vocab_size, 1024)
-out = embedding(src_batch)
-print(out.shape)
-print(out[0,0][:5])
+embedded = embedding(src_batch)
+print(embedded.shape)
+
+encoder = model.BaselineEncoder(1024, 32)
+encoded = encoder(embedded)
+print(encoded.shape)
+print(encoded[0,0][:5])
