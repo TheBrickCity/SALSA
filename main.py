@@ -1,5 +1,7 @@
-import LWE_Sample_Manager, dataset, time
+import LWE_Sample_Manager, dataset, time, model
 from torch.utils.data import DataLoader
+
+import model
 
 start = time.time()
 LWE = LWE_Sample_Manager.LWE(10, 10, 251, 2, 3, 10)
@@ -20,3 +22,8 @@ print("src shape:", src_batch.shape)
 print("tgt shape:", tgt_batch.shape)
 print(src_batch[0])
 print(tgt_batch[0])
+
+embedding = model.TokenEmbedding(ds.vocab_size, 1024)
+out = embedding(src_batch)
+print(out.shape)
+print(out[0,0][:5])
