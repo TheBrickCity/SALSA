@@ -17,7 +17,6 @@ class LWEDataset(Dataset):
         self.EOS = base + 2
         self.vocab_size = base + 3
 
-
     def _digit_len(self, q, base): # returns k the smallest amount of digits to uniquely represent each value 1,...,q
         k = 0
         val = 1
@@ -51,4 +50,3 @@ class LWEDataset(Dataset):
                 src.append(self.SEP)
         tgt = [self.SOS] + self._encode_int(self.b[idx]) + [self.EOS]
         return (torch.tensor(src, dtype=torch.long), torch.tensor(tgt,dtype=torch.long),)
-

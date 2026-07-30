@@ -14,17 +14,27 @@ LWE.generate()
 
 integer_base = 81 # base that integer b and integers from vecors in A are converted into before tokenizing
 ds = dataset.LWEDataset(LWE, integer_base)
-
 loader = DataLoader(ds, batch_size=4, shuffle=True)
 src_batch, tgt_batch = next(iter(loader))
-print("src shape:", src_batch.shape)
-print(src_batch[0])
 
-embedding = model.TokenEmbedding(ds.vocab_size, 1024)
-embedded = embedding(src_batch)
-print(embedded.shape)
+print("src_batch shape:", src_batch.shape)
+print("tgt_batch shape:", tgt_batch.shape)
 
-encoder = model.SalsaEncoder(1024, 32, 2)
-encoded = encoder(embedded)
-print(encoded.shape)
-print(encoded[0,0][:5])
+# encoder side (1024 dim)
+src_embedding = model.TokenEmbedding(ds.vocab_size, 1024)
+encoder = model.SalsaEncoder(dimension=1024, num_heads=32, layer2_loops=2)
+
+src_embedded = src_embedding(src_batch)
+memory = encoder(src_embedded)
+print("memory shape:", memory.shape)
+
+# decoder side (512 dim)
+tgt_embedding = model.TokenEmbedding(ds.vocab_size, 512)
+decoder = model.SalsaDecoder(dimension=512, num_heads=8, layer2_loops=8)
+
+tgt_embedded = tgt_embedding(tgt_batch)
+print("tgt_embedded shape:", tgt_embedded.shape)
+
+decoded = decoder(tgt_embedded, memory)
+print("decoded shape:", decoded.shape)
+print(decoded[0, 0][:5])

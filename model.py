@@ -39,3 +39,18 @@ class SalsaEncoder(nn.Module):
             g = torch.sigmoid(self.gate(x))
             x = g * new_x + (1-g) * x
         return x
+
+class SalsaDecoder(nn.Module):
+    def __init__(self, dimension, num_heads, layer2_loops):
+        super().__init__()
+        self.layer1 = nn.TransformerDecoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
+        self.layer2 = nn.TransformerDecoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
+        self.layer2_loops = layer2_loops
+
+    def forward(self,tgt, memory):
+        seq_len = tgt.shape[1]
+        mask = nn.Transformer.generate_square_subsequent_mask(seq_len).to(tgt.device)
+        x = self.layer1(tgt, memory, tgt_mask=mask)
+        for _ in range(self.layer2_loops):
+            x = self.layer2(x, memory, tgt_mask=mask)
+        return x
