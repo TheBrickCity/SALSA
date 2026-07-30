@@ -14,11 +14,25 @@ class TokenEmbedding(nn.Module):
         positions = positions.expand(batch, seq_length)
         return self.token_embed(x) + self.position_embed(positions) # output size: batch x seq_length x dimension
 
-class BaselineEncoder(nn.Module):
-    def __init__(self, dimension, num_heads):
+# class BaselineEncoder(nn.Module):
+#     def __init__(self, dimension, num_heads):
+#         super().__init__()
+#         layer = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
+#         self.encoder = nn.TransformerEncoder(layer, num_layers=1)
+#
+#     def forward(self, x):
+#         return self.encoder(x)
+
+class SalsaEncoder(nn.Module):
+    def __init__(self, dimension, num_heads, layer2_loops):
         super().__init__()
-        layer = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
-        self.encoder = nn.TransformerEncoder(layer, num_layers=1)
+        self.layer1 = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
+        self.layer2 = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
+        self.layer2_loops = layer2_loops
+
 
     def forward(self, x):
-        return self.encoder(x)
+        x = self.layer1(x)
+        for _ in range(self.layer2_loops):
+            x = self.layer2(x)
+        return x

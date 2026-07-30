@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 
 import model
 
-start = time.time()
+# start = time.time()
 LWE = LWE_Sample_Manager.LWE(10, 10, 251, 2, 3, 10)
 # print(LWE.n,LWE.m, LWE.q,LWE.h, LWE.sigma)
 LWE.generate()
@@ -24,7 +24,7 @@ embedding = model.TokenEmbedding(ds.vocab_size, 1024)
 embedded = embedding(src_batch)
 print(embedded.shape)
 
-encoder = model.BaselineEncoder(1024, 32)
+encoder = model.SalsaEncoder(1024, 32, 2)
 encoded = encoder(embedded)
 print(encoded.shape)
 print(encoded[0,0][:5])
