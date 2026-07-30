@@ -29,10 +29,13 @@ class SalsaEncoder(nn.Module):
         self.layer1 = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
         self.layer2 = nn.TransformerEncoderLayer(d_model=dimension, nhead=num_heads, batch_first=True)
         self.layer2_loops = layer2_loops
+        self.gate = nn.Linear(dimension, dimension)
 
 
     def forward(self, x):
         x = self.layer1(x)
         for _ in range(self.layer2_loops):
-            x = self.layer2(x)
+            new_x = self.layer2(x)
+            g = torch.sigmoid(self.gate(x))
+            x = g * new_x + (1-g) * x
         return x
