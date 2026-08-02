@@ -90,3 +90,23 @@ class SalsaModel(nn.Module):
         tgt_embedded = self.tgt_embedding(tgt)
         decoded = self.decoder(tgt_embedded, memory)
         return self.output_layer(decoded)
+
+    @torch.no_grad
+    def generate(self, src, sos_token, num_digits, base):
+        self.eval()
+        batch_size = src.shape[0]
+        src_embedded = self.src_embedding(src)
+        memory = self.projection(self.encoder(src_embedded))
+        generated = torch.full((batch_size, 1), sos_token, dtype=torch.long, device=src.device)
+
+        for _ in range(num_digits):
+            tgt_embedded = self.tgt_embedding(generated)
+            decoded = self.decoder(tgt_embedded, memory)
+            logits = self.output_layer(decoded)
+
+            next_token_logits = logits[:, -1, :base]
+            next_token = next_token_logits.argmax(dim=-1, keepdim=True)
+
+            generated = torch.cat([generated, next_token], dim=1)
+        self.train()
+        return generated[:, 1:]

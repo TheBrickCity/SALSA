@@ -32,8 +32,8 @@ for epoch in range(num_epochs):
         src_batch, tgt_batch = next(data_iter)
         logits = salsa(src_batch, tgt_batch)
 
-        logits_for_loss = logits[:, :-1, :]
-        targets_for_loss = tgt_batch[:, 1:]
+        logits_for_loss = logits[:, :-1, :] # stops trying to predict when it can see EOS
+        targets_for_loss = tgt_batch[:, 1:] # drops SOS
 
         loss = criterion(logits_for_loss.reshape(-1, logits_for_loss.shape[-1]),targets_for_loss.reshape(-1),)
 
@@ -53,3 +53,19 @@ for epoch in range(num_epochs):
     avg_accuracy = total_accuracy / num_batchs
     print(f"epoch {epoch}: avg loss = {avg_loss:.4f}, "
           f"acc_tau=0.1 = {avg_accuracy:.2%} ({samples_seen} samples seen)")
+
+src_batch, tgt_batch = next(data_iter)
+predicted_tokens = salsa.generate(src_batch, ds.SOS, ds.digits_per_int, ds.base)
+
+print("\ntrue tgt tokens:\n", tgt_batch)
+print("generated digit tokens:\n", predicted_tokens)
+
+for i in range(src_batch.shape[0]):
+    true_digits = tgt_batch[i, 1:1 + ds.digits_per_int].tolist()
+    true_b = ds._decode_int(true_digits)
+
+    predicted_digits = predicted_tokens[i].tolist()
+    predicted_b = ds._decode_int(predicted_digits)
+
+    print(f"example {i}: true b = {true_b}, predicted b = {predicted_b}, "
+          f"diff = {abs(true_b - predicted_b)}")
