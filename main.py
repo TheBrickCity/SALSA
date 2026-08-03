@@ -1,71 +1,74 @@
-import torch
-import torch.nn as nn
 import itertools
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import LWE_Sample_Manager, dataset, model
 from training_setup import make_optimizer_and_scheduler
-from metrics import accuracy_within_tolerance
+from recovery import direct_secret_recovery, verify_secret
 
-LWE = LWE_Sample_Manager.LWE(10, 10, 251, 2, 3, 10)
-LWE.generate()
+n, m, q, h, sigma, gaussian_bound = 6, 200, 11, 1, 1, 3
+
+lwe = LWE_Sample_Manager.LWE(n, m, q, h, sigma, gaussian_bound)
+lwe.generate()
+print("true secret:", lwe.s.tolist())
 
 integer_base = 81
-ds = dataset.LWEDataset(LWE, integer_base)
-loader = DataLoader(ds, batch_size=4, shuffle=True)
-data_iter = itertools.cycle(loader)
-# src_batch, tgt_batch = next(iter(loader))
+ds = dataset.LWEDataset(lwe, integer_base)
+print("digits_per_int:", ds.digits_per_int, "| vocab_size:", ds.vocab_size)
 
-salsa = model.SalsaModel(ds.vocab_size,1024, 512, 32, 8, 2, 8)
-optimizer, scheduler = make_optimizer_and_scheduler(salsa, 1e-5, 50)
+batch_size = 16
+loader = DataLoader(ds, batch_size=batch_size, shuffle=True)
+data_iter = itertools.cycle(loader)
+
+salsa_model = model.SalsaModel(ds.vocab_size)
+
+epoch_size = 1600
+num_epochs = 50
+warmup_steps = 200
+
+optimizer, scheduler = make_optimizer_and_scheduler(salsa_model, 1e-5, warmup_steps=warmup_steps)
 criterion = nn.CrossEntropyLoss()
 
-epoch_size = 40
-num_epochs = 5
 for epoch in range(num_epochs):
     total_loss = 0.0
-    total_accuracy = 0.0
     samples_seen = 0
-    num_batchs = 0
 
     while samples_seen < epoch_size:
         src_batch, tgt_batch = next(data_iter)
-        logits = salsa(src_batch, tgt_batch)
+        logits = salsa_model(src_batch, tgt_batch)
 
-        logits_for_loss = logits[:, :-1, :] # stops trying to predict when it can see EOS
-        targets_for_loss = tgt_batch[:, 1:] # drops SOS
-
-        loss = criterion(logits_for_loss.reshape(-1, logits_for_loss.shape[-1]),targets_for_loss.reshape(-1),)
+        logits_for_loss = logits[:, :-1, :]
+        targets_for_loss = tgt_batch[:, 1:]
+        loss = criterion(
+            logits_for_loss.reshape(-1, logits_for_loss.shape[-1]),
+            targets_for_loss.reshape(-1),
+        )
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step()
 
-        acc = accuracy_within_tolerance(logits, tgt_batch, ds, tau=0.1)
-
         total_loss += loss.item()
-        num_batchs += 1
-        total_accuracy += acc
         samples_seen += src_batch.shape[0]
 
-    avg_loss = total_loss / num_batchs
-    avg_accuracy = total_accuracy / num_batchs
-    print(f"epoch {epoch}: avg loss = {avg_loss:.4f}, "
-          f"acc_tau=0.1 = {avg_accuracy:.2%} ({samples_seen} samples seen)")
+    if epoch % 5 == 0 or epoch == num_epochs - 1:
+        print(f"epoch {epoch}: avg loss = {total_loss / (samples_seen // batch_size):.4f}")
 
-src_batch, tgt_batch = next(data_iter)
-predicted_tokens = salsa.generate(src_batch, ds.SOS, ds.digits_per_int, ds.base)
+K_values = [2, 4, 6, 8, 10]
+guesses = direct_secret_recovery(salsa_model, ds, lwe.n, K_values)
+print(f"\ngenerated {len(guesses)} candidate guesses from {len(K_values)} K values")
 
-print("\ntrue tgt tokens:\n", tgt_batch)
-print("generated digit tokens:\n", predicted_tokens)
+best_guess, best_std, recovered, all_scored = verify_secret(
+    guesses, lwe.A, lwe.b, lwe.q, lwe.sigma
+)
 
-for i in range(src_batch.shape[0]):
-    true_digits = tgt_batch[i, 1:1 + ds.digits_per_int].tolist()
-    true_b = ds._decode_int(true_digits)
+print("\nall guesses ranked by residual std (best first):")
+for guess, std in all_scored:
+    print(f"  {guess}  std={std:.3f}")
 
-    predicted_digits = predicted_tokens[i].tolist()
-    predicted_b = ds._decode_int(predicted_digits)
-
-    print(f"example {i}: true b = {true_b}, predicted b = {predicted_b}, "
-          f"diff = {abs(true_b - predicted_b)}")
+print("\nbest guess:      ", best_guess)
+print("true secret:      ", lwe.s.tolist())
+print("residual std:      %.3f" % best_std)
+print("looks recovered:  ", recovered)
+print("exact match:      ", best_guess == lwe.s.tolist())
