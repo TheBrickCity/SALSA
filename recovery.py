@@ -15,15 +15,16 @@ def build_probe_src(n, ds, K, index):
 
 def direct_secret_recovery(salsa_model, ds, n, K_values):
     guesses = []
-
+    device = next(salsa_model.parameters()).device
     for K in K_values:
         # build all n probe inputs for this K as one batch
         probe_srcs = [build_probe_src(n, ds, K, i) for i in range(n)]
-        src_batch = torch.tensor(probe_srcs, dtype=torch.long)
+        src_batch = torch.tensor(probe_srcs, dtype=torch.long, device=device)
 
         predicted_tokens = salsa_model.generate(
             src_batch, sos_token=ds.SOS, num_digits=ds.digits_per_int, base=ds.base
         )
+        predicted_tokens = predicted_tokens.cpu()
 
         p = [ds._decode_int(predicted_tokens[i].tolist()) for i in range(n)]
 
